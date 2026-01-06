@@ -3,227 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Finance Tracker</title>
+    <title>Cloud Finance Tracker - 13 Accounts</title>
     <style>
         :root { --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --bg: #f8fafc; }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); padding: 10px; color: #1e293b; margin: 0; }
         .container { max-width: 1200px; margin: 20px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
-        /* Summary */
+        /* Totals Banner */
         .grand-total { background: #1e293b; color: white; padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center; }
+        .grand-total h3 { margin: 0; font-size: 0.9rem; opacity: 0.8; text-transform: uppercase; }
         .grand-total p { margin: 5px 0 0; font-size: 2.5rem; font-weight: 800; }
-        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .card { padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; }
-        .balance { font-size: 1rem; font-weight: 700; margin-top: 5px; }
 
-        /* Form */
+        /* Individual Account Cards */
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 25px; }
+        .card { padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; }
+        .card strong { font-size: 0.75rem; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .balance { font-size: 1.1rem; font-weight: 700; }
+
+        /* Entry Form */
         form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: #f1f5f9; padding: 20px; border-radius: 8px; align-items: end; margin-bottom: 25px; }
         .input-group { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; font-weight: 600; }
         input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; }
-        
-        /* Controls */
+        .btn { padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; color: white; transition: 0.2s; }
+        .btn-add { background: var(--primary); width: 100%; grid-column: 1 / -1; }
+        .btn-add:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Search & Export Controls */
         .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .search-bar { flex-grow: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; }
-        .btn { padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; border: none; color: white; transition: 0.2s; }
-        .btn-add { background: var(--primary); width: 100%; grid-column: 1 / -1; }
         .btn-download { background: #64748b; }
-        button:disabled { background: #cbd5e1; cursor: not-allowed; }
 
         /* Table */
-        .table-container { overflow-x: auto; }
+        .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 600px; }
-        th { background: #f8fafc; text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+        th { background: #f8fafc; text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #64748b; }
         td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
         .income { color: var(--success); font-weight: 600; }
-        .expense { color: var(--danger); font-weight: 600; }
-        .transfer { color: #6366f1; font-weight: 600; }
-        .hidden { display: none; }
-        
-        @media (max-width: 600px) { .grand-total p { font-size: 1.8rem; } }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="grand-total">
-        <h3>Total Net Balance</h3>
-        <p id="netTotal">₹0.00</p>
-    </div>
-
-    <div class="summary" id="accountSummary">Loading accounts...</div>
-
-    <form id="transactionForm">
-        <div class="input-group">
-            <label>Date</label>
-            <input type="date" id="date" required>
-        </div>
-        <div class="input-group">
-            <label>Type</label>
-            <select id="type" onchange="toggleTransfer()">
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-                <option value="transfer">Transfer</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label id="accLabel">Account</label>
-            <select id="accountFrom"></select>
-        </div>
-        <div class="input-group hidden" id="toAccGroup">
-            <label>To Account</label>
-            <select id="accountTo"></select>
-        </div>
-        <div class="input-group">
-            <label>Amount</label>
-            <input type="number" id="amount" step="0.01" required>
-        </div>
-        <div class="input-group">
-            <label>Description</label>
-            <input type="text" id="desc" placeholder="What for?">
-        </div>
-        <button type="submit" id="submitBtn" class="btn btn-add">Add Entry</button>
-    </form>
-
-    <div class="controls">
-        <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search records..." onkeyup="updateUI()">
-        <button class="btn btn-download" onclick="downloadCSV()">Download CSV Backup</button>
-    </div>
-
-    <div class="table-container">
-        <table id="transactionTable">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Details</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-    // --- CONFIGURATION ---
-    const scriptURL = https://script.google.com/macros/s/AKfycbwWY6k4bSlntBrJxBacdHQlzjd0EegEtL26xgP347d1oaLFpRslNH1HF56iyfUURMYkrA/exec; 
-    const accounts = ["BILBY CASH", "BILBY AC", "ABY AC", "ANITTA AC", "AKHIL VT", "AKHIL 2 KOZHIKANNAN", "JISHNU AC", "ALEYAMMA AC", "SANJU AC", "HAFIS SBI", "KANNAN MANI", "SHAMON", "ARAVIND THUTTAPPAN"];
-    
-    let transactions = [];
-
-    // Initialize Dropdowns
-    const fromSelect = document.getElementById('accountFrom');
-    const toSelect = document.getElementById('accountTo');
-    accounts.forEach(acc => {
-        fromSelect.add(new Option(acc, acc));
-        toSelect.add(new Option(acc, acc));
-    });
-
-    function toggleTransfer() {
-        const isTransfer = document.getElementById('type').value === 'transfer';
-        document.getElementById('toAccGroup').classList.toggle('hidden', !isTransfer);
-        document.getElementById('accLabel').innerText = isTransfer ? "From Account" : "Account";
-    }
-
-    async function loadData() {
-        try {
-            const response = await fetch(scriptURL);
-            const data = await response.json();
-            // Map array back to objects
-            transactions = data.map(r => ({ date:r[0], type:r[1], accFrom:r[2], accTo:r[3], amount:r[4], desc:r[5] }));
-            updateUI();
-        } catch (e) {
-            document.getElementById('accountSummary').innerText = "Error connecting to cloud.";
-        }
-    }
-
-    function updateUI() {
-        const tbody = document.querySelector('#transactionTable tbody');
-        const summary = document.getElementById('accountSummary');
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        
-        tbody.innerHTML = ''; summary.innerHTML = '';
-        let totals = {};
-        let netBalance = 0;
-        accounts.forEach(acc => totals[acc] = 0);
-
-        transactions.forEach(tx => {
-            const amt = parseFloat(tx.amount);
-            if (tx.type === 'income') { totals[tx.accFrom] += amt; netBalance += amt; }
-            else if (tx.type === 'expense') { totals[tx.accFrom] -= amt; netBalance -= amt; }
-            else if (tx.type === 'transfer') { totals[tx.accFrom] -= amt; totals[tx.accTo] += amt; }
-        });
-
-        accounts.forEach(acc => {
-            const bal = totals[acc];
-            summary.innerHTML += `<div class="card"><strong>${acc}</strong><div class="balance" style="color: ${bal >= 0 ? '#16a34a' : '#dc2626'}">₹${bal.toFixed(2)}</div></div>`;
-        });
-        document.getElementById('netTotal').innerText = `₹${netBalance.toFixed(2)}`;
-
-        transactions.slice().reverse().forEach(tx => {
-            let detailStr = tx.type === 'transfer' ? `${tx.accFrom} ➔ ${tx.accTo}` : tx.accFrom;
-            let rowText = (tx.date + tx.type + tx.desc + detailStr).toLowerCase();
-            
-            if (rowText.includes(searchTerm)) {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${tx.date}</td>
-                    <td class="${tx.type}">${tx.type.toUpperCase()}</td>
-                    <td><strong>${detailStr}</strong><br><small>${tx.desc}</small></td>
-                    <td class="${tx.type}">₹${parseFloat(tx.amount).toFixed(2)}</td>
-                `;
-            }
-        });
-    }
-
-    document.getElementById('transactionForm').onsubmit = async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.innerText = "Syncing with Cloud...";
-
-        const newTx = {
-            date: document.getElementById('date').value,
-            type: document.getElementById('type').value,
-            accFrom: document.getElementById('accountFrom').value,
-            accTo: document.getElementById('accountTo').value,
-            amount: document.getElementById('amount').value,
-            desc: document.getElementById('desc').value
-        };
-
-        try {
-            await fetch(scriptURL, {
-                method: 'POST',
-                mode: 'no-cors', // Essential for Google Apps Script
-                body: JSON.stringify(newTx)
-            });
-            // Update UI locally immediately
-            transactions.push(newTx);
-            updateUI();
-            e.target.reset();
-            toggleTransfer();
-        } catch (err) {
-            alert("Save failed. Check Internet.");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Add Entry";
-        }
-    };
-
-    function downloadCSV() {
-        let csv = "Date,Type,From,To,Amount,Description\n";
-        transactions.forEach(tx => {
-            csv += `${tx.date},${tx.type},${tx.accFrom},${tx.accTo || ''},${tx.amount},"${tx.desc}"\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `finance_report_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-    }
-
-    loadData();
-</script>
-</body>
-</html>
+        .expense { color: var(--danger); font-weight:
